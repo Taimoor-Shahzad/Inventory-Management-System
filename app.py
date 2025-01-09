@@ -1,5 +1,6 @@
 import streamlit as st
-from lms_core import AuthenticationManager, ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from lms_core import ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from authentication import AuthenticationManager, AuthenticationError, AuthorizationError
 import pandas as pd
 
 # Initialize Managers
@@ -102,6 +103,65 @@ def user_dashboard():
     else:
         st.dataframe(df)
 
+# Registration Page
+def register_page():
+    st.title("Register New User")
+    
+    # Reset session state only if requested
+    if "reg_success" not in st.session_state:
+        st.session_state.reg_success = False
+    
+    if st.session_state.reg_success:
+        st.session_state.reg_username = ""
+        st.session_state.reg_password = ""
+        st.session_state.reg_confirm_password = ""
+        st.session_state.reg_success = False
+
+    username = st.text_input("Username", key="reg_username")
+    password = st.text_input("Password", type="password", key="reg_password")
+    confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm_password")
+    role = st.selectbox("Role", [Role.USER, Role.ADMIN])  # Optional for Admin Role
+
+    if st.button("Register"):
+        if password != confirm_password:
+            st.error("Passwords do not match.")
+        else:
+            try:
+                current_user_role = st.session_state.get("role", None)
+                auth_manager.register_user(username, password, role, current_user_role)
+                st.success("User registered successfully!")
+                st.session_state.reg_success = True
+            except Exception as e:
+                st.error(str(e))
+
+
+# Login Page
+def login_page():
+    st.title("Login")
+
+    # Reset fields if they don't exist
+    if "login_success" not in st.session_state:
+        st.session_state.login_success = False
+
+    if st.session_state.login_success:
+        st.session_state.login_username = ""
+        st.session_state.login_password = ""
+        st.session_state.login_success = False
+
+    username = st.text_input("Username", key="login_username")
+    password = st.text_input("Password", type="password", key="login_password")
+
+    if st.button("Login"):
+        try:
+            user = auth_manager.authenticate_user(username, password)
+            st.session_state.logged_in = True
+            st.session_state.role = user.role
+            st.success(f"Logged in as {user.role}")
+            st.session_state.login_success = True
+        except Exception as e:
+            st.error(str(e))
+
+
 # Main Interface
 def main():
     st.sidebar.title("Inventory Management System")
@@ -111,21 +171,18 @@ def main():
         st.session_state.logged_in = False
         st.session_state.role = None
 
-    # Login Screen
-    if not st.session_state.logged_in:
-        st.title("Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+    # Menu Options
+    menu = ["Login", "Register"]
+    if st.session_state.logged_in:
+        menu.append("Logout")
 
-        if st.button("Login"):
-            try:
-                user = auth_manager.authenticate_user(username, password)
-                st.session_state.logged_in = True
-                st.session_state.role = user.role
-                st.success(f"Logged in as {user.role}")
-            except Exception as e:
-                st.error(str(e))
-    else:
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    # Login Screen
+    if choice == "Login" and not st.session_state.logged_in:
+        login_page()
+
+    elif st.session_state.logged_in:
         # Role-Based Dashboard
         role = st.session_state.role
         if role == Role.ADMIN:
@@ -138,6 +195,9 @@ def main():
             st.session_state.logged_in = False
             st.session_state.role = None
             st.experimental_rerun()
+
+    elif choice == "Register":
+        register_page()
 
 if __name__ == "__main__":
     main()
