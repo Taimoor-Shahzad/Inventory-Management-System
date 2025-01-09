@@ -1,5 +1,6 @@
 import streamlit as st
-from lms_core import AuthenticationManager, ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from lms_core import ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from authentication import AuthenticationManager, AuthenticationError, AuthorizationError
 import pandas as pd
 
 # Initialize Managers
@@ -102,42 +103,68 @@ def user_dashboard():
     else:
         st.dataframe(df)
 
+# Registration Page
+def register_page():
+    st.title("Register New User")
+    username = st.text_input("Username", key="reg_username", value="")
+    password = st.text_input("Password", type="password", key="reg_password", value="")
+    confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm_password", value="")
+    role = st.selectbox("Role", [Role.USER, Role.ADMIN])  # Optional for Admin Role
+
+    if st.button("Register"):
+        if password != confirm_password:
+            st.error("Passwords do not match.")
+        else:
+            try:
+                current_user_role = st.session_state.get("role", None)
+                auth_manager.register_user(username, password, role, current_user_role)
+                st.success("User registered successfully!")
+            except Exception as e:
+                st.error(str(e))
+
+# Login Page
+def login_page():
+    st.title("Login")
+    username = st.text_input("Username", key="login_username", value="")
+    password = st.text_input("Password", type="password", key="login_password", value="")
+
+    if st.button("Login"):
+        try:
+            user = auth_manager.authenticate_user(username, password)
+            st.session_state.logged_in = True
+            st.session_state.role = user.role
+            st.success(f"Logged in as {user.role}")
+        except Exception as e:
+            st.error(str(e))
+
 # Main Interface
 def main():
-    st.sidebar.title("Inventory Management System")
-
     # Initialize session state variables
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.role = None
 
-    # Login Screen
+    st.sidebar.title("Inventory Management System")
+
+    # Sidebar logic based on login state
     if not st.session_state.logged_in:
-        st.title("Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+        menu = ["Login", "Register"]
+        choice = st.sidebar.selectbox("Menu", menu)
 
-        if st.button("Login"):
-            try:
-                user = auth_manager.authenticate_user(username, password)
-                st.session_state.logged_in = True
-                st.session_state.role = user.role
-                st.success(f"Logged in as {user.role}")
-            except Exception as e:
-                st.error(str(e))
+        if choice == "Login":
+            login_page()
+        elif choice == "Register":
+            register_page()
     else:
-        # Role-Based Dashboard
-        role = st.session_state.role
-        if role == Role.ADMIN:
-            admin_dashboard()  # Call the Admin Dashboard function
-        elif role == Role.USER:
-            user_dashboard()  # Call the User Dashboard function
+        if st.session_state.role == Role.ADMIN:
+            admin_dashboard()  # Admin functionality
+        elif st.session_state.role == Role.USER:
+            user_dashboard()  # User functionality
 
-        # Logout Button
+        # Logout button
         if st.sidebar.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.role = None
-            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
