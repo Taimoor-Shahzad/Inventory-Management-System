@@ -106,20 +106,9 @@ def user_dashboard():
 # Registration Page
 def register_page():
     st.title("Register New User")
-    
-    # Reset session state only if requested
-    if "reg_success" not in st.session_state:
-        st.session_state.reg_success = False
-    
-    if st.session_state.reg_success:
-        st.session_state.reg_username = ""
-        st.session_state.reg_password = ""
-        st.session_state.reg_confirm_password = ""
-        st.session_state.reg_success = False
-
-    username = st.text_input("Username", key="reg_username")
-    password = st.text_input("Password", type="password", key="reg_password")
-    confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm_password")
+    username = st.text_input("Username", key="reg_username", value="")
+    password = st.text_input("Password", type="password", key="reg_password", value="")
+    confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm_password", value="")
     role = st.selectbox("Role", [Role.USER, Role.ADMIN])  # Optional for Admin Role
 
     if st.button("Register"):
@@ -130,26 +119,14 @@ def register_page():
                 current_user_role = st.session_state.get("role", None)
                 auth_manager.register_user(username, password, role, current_user_role)
                 st.success("User registered successfully!")
-                st.session_state.reg_success = True
             except Exception as e:
                 st.error(str(e))
-
 
 # Login Page
 def login_page():
     st.title("Login")
-
-    # Reset fields if they don't exist
-    if "login_success" not in st.session_state:
-        st.session_state.login_success = False
-
-    if st.session_state.login_success:
-        st.session_state.login_username = ""
-        st.session_state.login_password = ""
-        st.session_state.login_success = False
-
-    username = st.text_input("Username", key="login_username")
-    password = st.text_input("Password", type="password", key="login_password")
+    username = st.text_input("Username", key="login_username", value="")
+    password = st.text_input("Password", type="password", key="login_password", value="")
 
     if st.button("Login"):
         try:
@@ -157,47 +134,37 @@ def login_page():
             st.session_state.logged_in = True
             st.session_state.role = user.role
             st.success(f"Logged in as {user.role}")
-            st.session_state.login_success = True
         except Exception as e:
             st.error(str(e))
 
-
 # Main Interface
 def main():
-    st.sidebar.title("Inventory Management System")
-
     # Initialize session state variables
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.role = None
 
-    # Menu Options
-    menu = ["Login", "Register"]
-    if st.session_state.logged_in:
-        menu.append("Logout")
+    st.sidebar.title("Inventory Management System")
 
-    choice = st.sidebar.selectbox("Menu", menu)
+    # Sidebar logic based on login state
+    if not st.session_state.logged_in:
+        menu = ["Login", "Register"]
+        choice = st.sidebar.selectbox("Menu", menu)
 
-    # Login Screen
-    if choice == "Login" and not st.session_state.logged_in:
-        login_page()
+        if choice == "Login":
+            login_page()
+        elif choice == "Register":
+            register_page()
+    else:
+        if st.session_state.role == Role.ADMIN:
+            admin_dashboard()  # Admin functionality
+        elif st.session_state.role == Role.USER:
+            user_dashboard()  # User functionality
 
-    elif st.session_state.logged_in:
-        # Role-Based Dashboard
-        role = st.session_state.role
-        if role == Role.ADMIN:
-            admin_dashboard()  # Call the Admin Dashboard function
-        elif role == Role.USER:
-            user_dashboard()  # Call the User Dashboard function
-
-        # Logout Button
+        # Logout button
         if st.sidebar.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.role = None
-            st.experimental_rerun()
-
-    elif choice == "Register":
-        register_page()
 
 if __name__ == "__main__":
     main()
