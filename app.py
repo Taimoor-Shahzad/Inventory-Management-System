@@ -1,5 +1,6 @@
 import streamlit as st
-from lms_core import AuthenticationManager, ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from lms_core import ProductManager, Product, Role, ProductNotFoundError, InsufficientStockError
+from authentication import AuthenticationManager, AuthenticationError, AuthorizationError
 import pandas as pd
 
 # Initialize Managers
@@ -102,6 +103,25 @@ def user_dashboard():
     else:
         st.dataframe(df)
 
+# Registration Page
+def register_page():
+    st.title("Register New User")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+    role = st.selectbox("Role", [Role.USER, Role.ADMIN])  # Optional for Admin Role
+
+    if st.button("Register"):
+        if password != confirm_password:
+            st.error("Passwords do not match.")
+        else:
+            try:
+                current_user_role = st.session_state.get("role", None)
+                auth_manager.register_user(username, password, role, current_user_role)
+                st.success("User registered successfully!")
+            except Exception as e:
+                st.error(str(e))
+
 # Main Interface
 def main():
     st.sidebar.title("Inventory Management System")
@@ -111,8 +131,15 @@ def main():
         st.session_state.logged_in = False
         st.session_state.role = None
 
+    # Menu Options
+    menu = ["Login", "Register"]
+    if st.session_state.logged_in:
+        menu.append("Logout")
+
+    choice = st.sidebar.selectbox("Menu", menu)
+
     # Login Screen
-    if not st.session_state.logged_in:
+    if choice == "Login" and not st.session_state.logged_in:
         st.title("Login")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -125,7 +152,8 @@ def main():
                 st.success(f"Logged in as {user.role}")
             except Exception as e:
                 st.error(str(e))
-    else:
+
+    elif st.session_state.logged_in:
         # Role-Based Dashboard
         role = st.session_state.role
         if role == Role.ADMIN:
@@ -138,6 +166,9 @@ def main():
             st.session_state.logged_in = False
             st.session_state.role = None
             st.experimental_rerun()
+
+    elif choice == "Register":
+        register_page()
 
 if __name__ == "__main__":
     main()
