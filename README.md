@@ -33,41 +33,6 @@ The Inventory Management System (IMS) is a console- and Streamlit-based applicat
 
 ---
 
-## **Project Structure**
-
-```
-Inventory Management System/
-├── ims_core.py           # Backend logic for authentication and product management.
-├── app.py                # Streamlit-based frontend interface.
-├── data/                 # Persistent storage for users and inventory.
-│   ├── inventory.json    # JSON file for storing inventory data.
-│   ├── users.json        # JSON file for storing user data.
-```
-
----
-
-## **Setup and Installation**
-
-### **Prerequisites**
-- Python 3.8 or above
-- Streamlit library
-
-### **Installation Steps**
-1. Clone the repository or download the project files.
-2. Navigate to the project directory:
-   ```bash
-   cd Inventory Management System
-   ```
-3. Install required dependencies:
-   ```bash
-   pip install streamlit pandas
-   ```
-4. Ensure the `data` folder contains the following files:
-   - `inventory.json`: Initialize with `[]` (empty list).
-   - `users.json`: Initialize with `{}` (empty dictionary).
-
----
-
 ## **How to Run**
 
 ### **Running the Application**
